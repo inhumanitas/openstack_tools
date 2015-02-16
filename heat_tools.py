@@ -2,8 +2,11 @@
 import uuid
 
 from heatclient.client import Client
-from openstack_tools import settings
+from heatclient.exc import HTTPConflict
+from testtools.matchers import MismatchError
 
+from openstack_tools.helpers import settings, StackState
+from openstack_tools.tasks import logger
 
 CLIENT_VERSION = '1'
 
@@ -35,6 +38,7 @@ def get_heat_client(token, orchestration_api_url=''):
             # cacert=CONF.https_cacert
         )
     except Exception as e:
+        logger.debug(e.message)
         client = None
 
     return client
@@ -52,11 +56,13 @@ def create_stack_by_template(heat_client, scheme_template,
     params = {
         "template": scheme_template,
         'parameters': providing_args,
-        'stack_name': stack_name or uuid.uuid4(),
+        'stack_name': stack_name or unicode(uuid.uuid4()),
     }
     try:
         stack = heat_client.stacks.create(**params)
-    except Exception as e:
+    except (MismatchError, HTTPConflict) as e:
+        # already exist with this name
+        logger.debug(e.message)
         stack = None
 
     return stack
@@ -81,7 +87,7 @@ def has_stack_with_id(heat_client, stack_id):
     u"""Creates stack by yaml scheme template
     :param heat_client: heat client instance
     :param stack_id: stack name id
-    :return stack
+    :return bool
     """
     stacks = [s for s in heat_client.stacks.list() if s.id == stack_id]
     return stacks > 0
@@ -91,7 +97,27 @@ def delete_stack(heat_client, stack_id):
     u"""Creates stack by yaml scheme template
     :param heat_client: heat client instance
     :param stack_id: stack name id
-    :return stack
     """
     if has_stack_with_id(heat_client, stack_id):
         heat_client.stacks.delete(stack_id)
+
+
+def set_stack_state(heat_client, stack_id, state):
+    u"""Creates stack by yaml scheme template
+    :param heat_client: heat client instance
+    :param stack_id: stack name id
+    :state
+
+    """
+    assert state in StackState, (
+        'state argument must be one of the StackState value')
+    fn = getattr(heat_client.actions, StackState.methods[state])
+    try:
+        result = fn(stack_id)
+    except HTTPConflict as e:
+        # The another action is in progress
+        result = ('Failed to set state to stack with id '
+                  '%s: %s' % (stack_id, e))
+        logger.debug(result)
+
+    return result

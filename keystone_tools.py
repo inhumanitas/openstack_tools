@@ -7,10 +7,13 @@ from openstack_tools.helpers import cached_by_args
 
 class KSClient(object):
     u"""Provides keystone user auth mechanism"""
-
+    # TODO rewrite as corutines
     def __init__(self):
         super(KSClient, self).__init__()
         self._ksclient = None
+
+    def __repr__(self):
+        return '<KSClient instance>' + super(KSClient, self).__repr__()
 
     def __call__(self, auth_url, username, password, **kwargs):
         u"""Create keystone client instance

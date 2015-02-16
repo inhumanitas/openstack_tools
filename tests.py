@@ -5,7 +5,7 @@ import yaml
 
 from openstack_tools.heat_tools import (
     get_orchestration_api_url, get_heat_client, create_stack_by_template,
-    delete_stack)
+    delete_stack, set_stack_state, StackState)
 from openstack_tools.helpers import get_auth_from_settings
 from openstack_tools.keystone_tools import auth_ks_client_by_pass
 from openstack_tools.yaml_scheme import load_scheme, write_scheme
@@ -100,7 +100,7 @@ class HeatClientTests(testtools.TestCase):
 
         self.assertIsNotNone(stack_info)
 
-    def test_stack_delete_all(self):
+    def test_stack_set_state(self):
         hc = get_heat_client(
             self.token,
             get_orchestration_api_url(self.ksclient)
@@ -108,4 +108,16 @@ class HeatClientTests(testtools.TestCase):
 
         for stack in hc.stacks.list():
             if stack.stack_name == self.new_stack_name:
-                print delete_stack(hc, stack.id)
+                self.assertIsNotNone(set_stack_state(hc, stack.id, StackState.CHECK))
+
+    def doCleanups(self):
+        res = super(HeatClientTests, self).doCleanups()
+        hc = get_heat_client(
+            self.token,
+            get_orchestration_api_url(self.ksclient)
+        )
+
+        for stack in hc.stacks.list():
+            if stack.stack_name == self.new_stack_name:
+                delete_stack(hc, stack.id)
+        return res
