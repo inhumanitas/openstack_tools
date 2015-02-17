@@ -23,21 +23,24 @@ def create_stack_by_template_async(
 
     return async_result
 
+if __name__ == '__main__':
 
-# providing_args = {
-#     'key': u'',
-#     'image': u'cirros-0.3.3-x86_64',
-#     'flavor': u'm1.tiny',
-#     'private_network': u'',
-# }
-providing_args = {
-    'key_name': u'',
-    'image': u'cirros-0.3.3-x86_64',
-    'flavor': u'm1.tiny',
-    'public_net_id': '14625fbc-84bd-4359-a1b3-94a4dd9d5625',
-    'private_net_id': '4e66becc-6df1-4c8a-8905-477b87d73e14',
-    'private_subnet_id': '229091ce-163f-436f-ac1d-3d65e352026f',
-}
-create_stack_by_template_async(
-    load_scheme('scheme.yaml'), stack_name='test_stack3',
-    providing_args=providing_args)
+    # providing_args = {
+    #     'key': u'',
+    #     'image': u'cirros-0.3.3-x86_64',
+    #     'flavor': u'm1.tiny',
+    #     'private_network': u'',
+    # }
+
+    providing_args = {
+        'key_name': u'',
+        'image': u'cirros-0.3.3-x86_64',
+        'flavor': u'm1.tiny',
+        'public_net_id': '14625fbc-84bd-4359-a1b3-94a4dd9d5625',
+        'private_net_id': '4e66becc-6df1-4c8a-8905-477b87d73e14',
+        'private_subnet_id': '229091ce-163f-436f-ac1d-3d65e352026f',
+    }
+
+    create_stack_by_template_async(
+        load_scheme('scheme.yaml'), stack_name='test_stack1',
+        providing_args=providing_args)
