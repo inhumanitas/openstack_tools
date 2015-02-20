@@ -3,11 +3,11 @@ import os
 import testtools
 import yaml
 
-from openstack_tools.heat_tools import (
+from openstack_tools.heat_tools.api import (
     get_orchestration_api_url, get_heat_client, create_stack_by_template,
-    delete_stack, set_stack_state, StackState)
+    delete_stack, action_stack, StackActions, stack_info, stack_status)
 from openstack_tools.helpers import get_auth_from_settings
-from openstack_tools.keystone_tools import auth_ks_client_by_pass
+from openstack_tools.keystone_tools.auth import auth_ks_client_by_pass
 from openstack_tools.yaml_scheme import load_scheme, write_scheme
 
 SCHEME_NAME = 'scheme.yaml'
@@ -65,50 +65,45 @@ class HeatClientTests(testtools.TestCase):
             'flavor': u'm1.tiny',
             'private_network': u'',
         }
+        self.hc = get_heat_client(
+            self.token,
+            get_orchestration_api_url(self.ksclient)
+        )
+
         return super(HeatClientTests, self).setUp()
 
     def test_archestra_url(self):
-
         url = get_orchestration_api_url(self.ksclient)
         self.assertIsNotNone(url)
 
-    def test_heat_client(self):
-        hc = get_heat_client(
-            self.token,
-            get_orchestration_api_url(self.ksclient)
-        )
-        self.assertIsNotNone(hc)
-
     def test_heat_client_has_stack(self):
-        hc = get_heat_client(
-            self.token,
-            get_orchestration_api_url(self.ksclient)
-        )
-        stack = [s for s in hc.stacks.list()]
+        stack = [s for s in self.hc.stacks.list()]
 
         self.assertIsInstance(stack, list)
 
     def test_stack_create(self):
-        hc = get_heat_client(
-            self.token,
-            get_orchestration_api_url(self.ksclient)
-        )
-
         stack_info = create_stack_by_template(
-            hc, self.scheme,
+            self.hc, self.scheme,
             stack_name=self.new_stack_name, providing_args=self.scheme_args)
 
         self.assertIsNotNone(stack_info)
 
-    def test_stack_set_state(self):
-        hc = get_heat_client(
-            self.token,
-            get_orchestration_api_url(self.ksclient)
-        )
+    # def test_stack_set_state(self):
+    #     for stack in hc.stacks.list():
+    #         if stack.stack_name == self.new_stack_name:
+    #             self.assertIsNotNone(action_stack(hc, stack.id, StackActions.CHECK))
 
-        for stack in hc.stacks.list():
+    def test_stack_info(self):
+        for stack in self.hc.stacks.list():
             if stack.stack_name == self.new_stack_name:
-                self.assertIsNotNone(set_stack_state(hc, stack.id, StackState.CHECK))
+                info = stack_info(self.hc, stack.id)
+                self.assertIsNotNone(info)
+
+    def test_stack_status(self):
+        for stack in self.hc.stacks.list():
+            if stack.stack_name == self.new_stack_name:
+                result, status = stack_status(self.hc, stack)
+                self.assertIsNotNone(result)
 
     def doCleanups(self):
         res = super(HeatClientTests, self).doCleanups()

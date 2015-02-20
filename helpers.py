@@ -1,7 +1,7 @@
 # coding: utf-8
 from functools import wraps
-from openstack_tools import yaml_scheme
-
+from celery_app import logger
+from yaml_scheme import load_scheme
 
 __author__ = 'morose'
 
@@ -11,9 +11,12 @@ def cached_by_args(fn, _cache=dict()):
 
     def wrapper(*args, **kwargs):
         key = repr(args) + repr(kwargs)
+
         if key not in _cache or not any([args, kwargs]):
             _cache[key] = fn(*args, **kwargs)
-
+            logger.debug('cache param')
+        else:
+            logger.debug('got cached param')
         return _cache[key]
 
     return wrapper
@@ -39,7 +42,7 @@ class SettingsException(Exception):
 
 class Settings(object):
     u"""Provides simple settings attributes"""
-    SETTINGS_FILE = '/home/morose/work/git/openstack_tools/settings.yaml'
+    SETTINGS_FILE = 'settings.yaml'
 
     def __init__(self, init_params=None, default_value=None):
         if init_params:
@@ -55,32 +58,26 @@ class Settings(object):
 
     @staticmethod
     def load_params(path):
-        return yaml_scheme.load_scheme(path)
+        return load_scheme(path)
 
     def __getattr__(self, item):
         result = self._params.get(item, self._def_value)
         if isinstance(result, dict):
             result = self.__class__(result)
         return result
+
+
 settings = Settings()
 
 
-class _StackStateCls():
+class BaseEnum(object):
 
-    SUSPEND = 1
-    RESUME = 2
-    CANCEL_UPDATE = 3
-    CHECK = 4
+    values = None
 
-    methods = {
-        SUSPEND: 'suspend',
-        RESUME: 'resume',
-        CANCEL_UPDATE: 'cancel_update',
-        CHECK: 'check',
-
-    }
-
+    @classmethod
     def __contains__(self, item):
         return item in self.__class__.__dict__.values()
 
-StackState = _StackStateCls()
+    @classmethod
+    def __getitem__(self, item):
+        return self.values[item]
